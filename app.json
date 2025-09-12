@@ -1,0 +1,34 @@
+{
+  "id": "4b16471a-c4c9-4bfe-8327-eb89c8420df2",
+  "name": "Noritsu Customizations",
+  "publisher": "Calsoft Japan",
+  "version": "1.0.0.20",
+  "brief": "",
+  "description": "",
+  "privacyStatement": "",
+  "EULA": "",
+  "help": "",
+  "url": "",
+  "logo": "",
+
+  "dependencies": [],
+  "screenshots": [],
+  "platform": "1.0.0.0",
+  "application": "22.1.0.0",  
+  "target": "Cloud",
+  "idRanges": [
+    {
+      "from": 50000,
+      "to": 50500
+    }
+  ],
+  "resourceExposurePolicy": {
+    "allowDebugging": true,
+    "allowDownloadingSource": true,
+    "includeSourceInSymbolFile": true
+  },
+  "runtime": "10.0",
+  "features": [
+    "NoImplicitWith"
+  ]
+}
