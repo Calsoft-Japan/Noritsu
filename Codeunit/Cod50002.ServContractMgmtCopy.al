@@ -7,7 +7,7 @@ codeunit 50002 "ServContractMgmt Copy"
                   TableData "Contract Change Log" = rimd,
                   TableData "Contract Gain/Loss Entry" = rimd;
     TableNo = "Service Contract Header";
-
+    //codeunit 5940 ServContractManagement
     trigger OnRun()
     begin
     end;
@@ -29,7 +29,7 @@ codeunit 50002 "ServContractMgmt Copy"
         ServiceRegister: Record "Service Register";
         GenJournalTemplate: Record "Gen. Journal Template";
         Salesperson: Record "Salesperson/Purchaser";
-        NoSeriesMgt: Codeunit NoSeriesManagement;
+        //NoSeriesMgt: Codeunit NoSeriesManagement; //PBC Modification BC27 Do not use this any more, replace with NoSeries: Codeunit "No. Series";
         DimMgt: Codeunit DimensionManagement;
         ApplicationAreaMgmt: Codeunit "Application Area Mgmt.";
         NextLine: Integer;
@@ -397,6 +397,7 @@ codeunit 50002 "ServContractMgmt Copy"
         UserMgt: Codeunit "User Setup Management";
         RecordLinkManagement: Codeunit "Record Link Management";
         IsHandled: Boolean;
+        NoSeries: Codeunit "No. Series";//PBC Modification
     begin
         if ServContract2."Invoice Period" = ServContract2."Invoice Period"::None then
             exit;
@@ -420,10 +421,14 @@ codeunit 50002 "ServContractMgmt Copy"
         ServMgtSetup.TestField("Contract Invoice Nos.");
         IsHandled := false;
         OnCreateServHeaderOnBeforeInitSeries(ServHeader2, ServMgtSetup, ServContract2, IsHandled);
-        if not IsHandled then
+        if not IsHandled then begin
+            ServHeader2."No. Series" := ServMgtSetup."Contract Invoice Nos.";
+            ServHeader2."No." := NoSeries.GetNextNo(ServHeader2."No. Series", PostDate);
+        end;
+        /* PBC Modification BC27 remove the NoSeriesMgt code unit
             NoSeriesMgt.InitSeries(
                 ServMgtSetup."Contract Invoice Nos.", '',
-                PostDate, ServHeader2."No.", ServHeader2."No. Series");
+                PostDate, ServHeader2."No.", ServHeader2."No. Series");*/
         InsertServiceHeader(ServHeader2, ServContract2);
         ServInvNo := ServHeader2."No.";
 
@@ -745,6 +750,7 @@ codeunit 50002 "ServContractMgmt Copy"
         ServContractForm: Page "Service Contract";
         LocationCode: Code[10];
         IsHandled: Boolean;
+        NoSeries: Codeunit "No. Series";//PBC Modification
     begin
         Clear(ServHeader2);
         ServDocReg.Reset();
@@ -793,10 +799,14 @@ codeunit 50002 "ServContractMgmt Copy"
         ServMgtSetup.TestField("Contract Credit Memo Nos.");
         IsHandled := false;
         OnCreateOrGetCreditHeaderOnBeforeInitSeries(ServHeader2, ServMgtSetup, IsHandled);
-        if not IsHandled then
+        if not IsHandled then begin
+            ServHeader2."No. Series" := ServMgtSetup."Contract Credit Memo Nos.";
+            ServHeader2."No." := NoSeries.GetNextNo(ServHeader2."No. Series");
+        end;
+        /* PBC Modification BC27 remove the NoSeriesMgt code unit
             NoSeriesMgt.InitSeries(
                 ServMgtSetup."Contract Credit Memo Nos.", ServHeader2."No. Series", 0D,
-                ServHeader2."No.", ServHeader2."No. Series");
+                ServHeader2."No.", ServHeader2."No. Series");*/
         InsertServiceHeader(ServHeader2, ServContract);
         ServInvoiceNo := ServHeader2."No.";
         ServHeader2.Correction := GLSetup."Mark Cr. Memos as Corrections";
@@ -2204,14 +2214,6 @@ codeunit 50002 "ServContractMgmt Copy"
                 OnGetInvoicePeriodTextOnCaseElse(InvoicePeriod, InvPeriodText);
         end;
     end;
-
-#if not CLEAN19
-    [Obsolete('Replaced by FilterServiceContractLine()', '19.0')]
-    procedure FilterServContractLine(var ServContractLine: Record "Service Contract Line"; ContractNo: Code[20]; ContractType: Option; LineNo: Integer)
-    begin
-        FilterServiceContractLine(ServContractLine, ContractNo, "Service Contract Type".FromInteger(ContractType), LineNo);
-    end;
-#endif
 
     procedure FilterServiceContractLine(var ServContractLine: Record "Service Contract Line"; ContractNo: Code[20]; ContractType: Enum "Service Contract Type"; LineNo: Integer)
     begin

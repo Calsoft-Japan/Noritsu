@@ -184,8 +184,6 @@ codeunit 50001 CSFDD015
             WDate := InvFrom; //PBC Modification
     end;
 
-
-
     [EventSubscriber(ObjectType::Codeunit, Codeunit::"ServContractManagement", 'OnAfterCalcContractLineAmount', '', true, true)]
     local procedure "ServContractManagement_OnAfterCalcContractLineAmount"
     (
@@ -464,6 +462,208 @@ codeunit 50001 CSFDD015
         if ServMgtSetup."Prepaid Inv. for Whole Year" then ServiceLine."Appl.-to Service Entry" := 0;
     end;
 
+    /*//===========PBC try to not copy code from standard codeunit 5940 for service contactor but can not make it so many triggers used by FDD115=====================================
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::ServContractManagement, 'OnBeforeCreateServiceLine', '', false, false)]
+    local procedure ServContractManagement_OnBeforeCreateServiceLine(ServiceHeader: Record "Service Header"; ContractType: Enum "Service Contract Type"; ContractNo: Code[20];
+                                                                                                                               InvFromDate: Date;
+                                                                                                                               InvToDate: Date;
+                                                                                                                               ServiceApplyEntry: Integer;
+                                                                                                                               SigningContract: Boolean; var IsHandled: Boolean)
+    var
+        ServContractHeader: Record "Service Contract Header";
+        ServDocReg: Record "Service Document Register";
+        ServiceLedgerEntry: Record "Service Ledger Entry";
+        TotalServLine: Record "Service Line";
+        TotalServLineLCY: Record "Service Line";
+        ServContractAccGr: Record "Service Contract Account Group";
+        LatestInvToDate: Date;
 
+        ServLine: Record "Service Line";
+        GLAcc: Record "G/L Account";
+        ServLineNo: Integer;
+        AppliedGLAccount: Code[20];
+    begin
+        IsHandled := true;
+
+        ServContractHeader.Get(ContractType, ContractNo);
+        if ServContractHeader."Invoice Period" = ServContractHeader."Invoice Period"::None then
+            exit;
+        ServLineNo := 0;
+        ServLine.Reset();
+        ServLine.SetRange("Document Type", ServLine."Document Type"::Invoice);
+        ServLine.SetRange("Document No.", ServiceHeader."No.");
+        if ServLine.FindLast() then
+            ServLineNo := ServLine."Line No.";
+
+        if ServContractHeader.Prepaid and not SigningContract then begin
+            ServContractHeader.TestField("Serv. Contract Acc. Gr. Code");
+            ServContractAccGr.Get(ServContractHeader."Serv. Contract Acc. Gr. Code");
+            ServContractAccGr.TestField("Prepaid Contract Acc.");
+            GLAcc.Get(ServContractAccGr."Prepaid Contract Acc.");
+            GLAcc.TestField("Direct Posting");
+        end else begin
+            ServContractHeader.TestField("Serv. Contract Acc. Gr. Code");
+            ServContractAccGr.Get(ServContractHeader."Serv. Contract Acc. Gr. Code");
+            ServContractAccGr.TestField("Non-Prepaid Contract Acc.");
+            GLAcc.Get(ServContractAccGr."Non-Prepaid Contract Acc.");
+            GLAcc.TestField("Direct Posting");
+        end;
+        AppliedGLAccount := GLAcc."No.";
+
+        LatestInvToDate := InvToDate;
+        if ServiceLedgerEntry.Get(ServiceApplyEntry) then begin
+            ServiceLedgerEntry.SetRange("Entry No.", ServiceApplyEntry, ServiceLedgerEntry."Apply Until Entry No.");
+            if ServiceLedgerEntry.FindSet() then begin
+                repeat
+                    //PBC Modification Comment out by Leon 5/11/2023
+                    //if ServiceLedgerEntry.Prepaid then begin
+                    //    InvFromDate := ServiceLedgerEntry."Posting Date";
+                    //    InvToDate := CalcDate('<CM>', InvFromDate);
+                    //    if InvToDate > LatestInvToDate then
+                    //        InvToDate := LatestInvToDate;
+                    //end; //Comment out for fix the issue when create service invoice line with wrong line description by Leon 05/11/2023
+                    //OnCreateServiceLineOnBeforeServLedgEntryToServiceLine(ServHeader, ServContractHeader, ServiceLedgerEntry, InvFromDate, InvToDate);
+                    ServLedgEntryToServiceLine(
+                      TotalServLine,
+                      TotalServLineLCY,
+                      ServiceHeader,
+                      ServiceLedgerEntry,
+                      ContractNo,
+                      InvFromDate,
+                      InvToDate,
+                      AppliedGLAccount);
+                until ServiceLedgerEntry.Next() = 0;
+                //OnCreateServiceLineOnAfterServLedgEntryToServiceLine(ServHeader, InvFromDate, InvToDate);
+            end;
+        end else begin
+            Clear(ServiceLedgerEntry);
+            //OnCreateServiceLineOnBeforeServLedgEntryToServiceLine(ServHeader, ServContractHeader, ServiceLedgerEntry, InvFromDate, InvToDate);
+            ServLedgEntryToServiceLine(
+              TotalServLine,
+              TotalServLineLCY,
+              ServiceHeader,
+              ServiceLedgerEntry,
+              ContractNo,
+              InvFromDate,
+              InvToDate,
+              AppliedGLAccount);
+        end;
+
+        Clear(ServDocReg);
+        ServDocReg.InsertServiceSalesDocument(
+          ServDocReg."Source Document Type"::Contract, ContractNo,
+          ServDocReg."Destination Document Type"::Invoice, ServLine."Document No.");
+    end;
+
+    procedure ServLedgEntryToServiceLine(var TotalServLine: Record "Service Line"; var TotalServLineLCY: Record "Service Line"; ServHeader: Record "Service Header"; ServiceLedgerEntry: Record "Service Ledger Entry"; ContractNo: Code[20]; InvFrom: Date; InvTo: Date; AppliedGLAccount: Code[20])
+    var
+        StdText: Record "Standard Text";
+        IsHandled: Boolean;
+
+        ServMgtSetup: Record "Service Mgt. Setup";
+        ServLine: Record "Service Line";
+        //GLAcc: Record "G/L Account";
+        ServLineNo: Integer;
+        TempServLineDescription: Text[250];
+        Text013: Label '%1 cannot be created because the %2 is too long. Please shorten the %3 %4 %5 by removing %6 character(s).';
+    begin
+        //OnBeforeServLedgEntryToServiceLine(TotalServLine, TotalServLineLCY, ServHeader, ServLedgEntry, IsHandled, ServiceLedgerEntry, InvFrom, InvTo);
+        //if IsHandled then
+        //    exit;
+
+        ServMgtSetup.Get();
+        ServLineNo := 0;
+        ServLine.Reset();
+        ServLine.SetRange("Document Type", ServLine."Document Type"::Invoice);
+        ServLine.SetRange("Document No.", ServHeader."No.");
+        if ServLine.FindLast() then
+            ServLineNo := ServLine."Line No.";
+
+        ServLineNo := ServLineNo + 10000;
+        ServLine.Reset();
+        ServLine.Init();
+        ServLine."Document Type" := ServHeader."Document Type";
+        ServLine."Document No." := ServHeader."No.";
+        ServLine."Line No." := ServLineNo;
+        ServLine."Customer No." := ServHeader."Customer No.";
+        ServLine."Location Code" := ServHeader."Location Code";
+        ServLine."Gen. Bus. Posting Group" := ServHeader."Gen. Bus. Posting Group";
+        ServLine."Transaction Specification" := ServHeader."Transaction Specification";
+        ServLine."Transport Method" := ServHeader."Transport Method";
+        ServLine."Exit Point" := ServHeader."Exit Point";
+        ServLine."Area" := ServHeader.Area;
+        ServLine."Transaction Specification" := ServHeader."Transaction Specification";
+
+        //InitServiceLineAppliedGLAccount();
+        ServLine.Type := ServLine.Type::"G/L Account";
+        ServLine.Validate("No.", AppliedGLAccount);
+
+        ServLine.Validate(ServLine.Quantity, 1);
+        if ServMgtSetup."Contract Inv. Period Text Code" <> '' then begin
+            StdText.Get(ServMgtSetup."Contract Inv. Period Text Code");
+            TempServLineDescription := StrSubstNo('%1 %2 - %3', StdText.Description, Format(InvFrom), Format(InvTo));
+            if StrLen(TempServLineDescription) > MaxStrLen(ServLine.Description) then
+                Error(
+                  Text013,
+                  ServLine.TableCaption, ServLine.FieldCaption(ServLine.Description),
+                  StdText.TableCaption(), StdText.Code, StdText.FieldCaption(Description),
+                  Format(StrLen(TempServLineDescription) - MaxStrLen(ServLine.Description)));
+            ServLine.Description := CopyStr(TempServLineDescription, 1, MaxStrLen(ServLine.Description));
+        end else
+            ServLine.Description :=
+              StrSubstNo('%1 - %2', Format(InvFrom), Format(InvTo));
+        ServLine."Contract No." := ContractNo;
+        ServLine."Appl.-to Service Entry" := ServiceLedgerEntry."Entry No.";
+        ServLine."Service Item No." := ServiceLedgerEntry."Service Item No. (Serviced)";
+        ServLine."Unit Cost (LCY)" := ServiceLedgerEntry."Unit Cost";
+        ServLine."Unit Price" := -ServiceLedgerEntry."Unit Price";
+
+        TotalServLine."Unit Price" += ServLine."Unit Price";
+        TotalServLine."Line Amount" += -ServiceLedgerEntry."Amount (LCY)";
+        if (ServiceLedgerEntry."Amount (LCY)" <> 0) or (ServiceLedgerEntry."Discount %" > 0) then
+            if ServHeader."Currency Code" <> '' then begin
+                ServLine.Validate(ServLine."Unit Price",
+                  AmountToFCY(TotalServLine."Unit Price", ServHeader) - TotalServLineLCY."Unit Price");
+                ServLine.Validate(ServLine."Line Amount",
+                  AmountToFCY(TotalServLine."Line Amount", ServHeader) - TotalServLineLCY."Line Amount");
+            end else begin
+                ServLine.Validate(ServLine."Unit Price");
+                ServLine.Validate(ServLine."Line Amount", -ServiceLedgerEntry."Amount (LCY)");
+            end;
+        TotalServLineLCY."Unit Price" += ServLine."Unit Price";
+        TotalServLineLCY."Line Amount" += ServLine."Line Amount";
+
+        //IsHandled := false;
+        //OnServLedgEntryToServiceLineOnBeforeDimSet(ServLine, ServiceLedgerEntry, ServHeader, IsHandled);
+        //if IsHandled then
+        //    exit;
+
+        ServLine."Shortcut Dimension 1 Code" := ServiceLedgerEntry."Global Dimension 1 Code";
+        ServLine."Shortcut Dimension 2 Code" := ServiceLedgerEntry."Global Dimension 2 Code";
+        ServLine."Dimension Set ID" := ServiceLedgerEntry."Dimension Set ID";
+
+        //IsHandled := false;
+        //OnServLedgEntryToServiceLineOnBeforeServLineInsert(ServLine, TotalServLine, TotalServLineLCY, ServHeader, ServLedgEntry, ServiceLedgerEntry, IsHandled, InvFrom, InvTo);
+        //if IsHandled then
+        //    exit;
+
+        ServLine.Insert();
+        ServLine.CreateDimFromDefaultDim(0);
+    end;
+
+    procedure AmountToFCY(AmountLCY: Decimal; var ServHeader3: Record "Service Header"): Decimal
+    var
+        CurrExchRate: Record "Currency Exchange Rate";
+        Currency: Record Currency;
+    begin
+        Currency.Get(ServHeader3."Currency Code");
+        Currency.TestField("Unit-Amount Rounding Precision");
+        exit(
+          Round(
+            CurrExchRate.ExchangeAmtLCYToFCY(
+              ServHeader3."Posting Date", ServHeader3."Currency Code",
+              AmountLCY, ServHeader3."Currency Factor"),
+            Currency."Unit-Amount Rounding Precision"));
+    end;*/
 
 }
