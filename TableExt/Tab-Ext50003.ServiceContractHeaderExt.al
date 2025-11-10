@@ -1,6 +1,7 @@
 tableextension 50003 "Service Contract Header Ext" extends "Service Contract Header"
 {
-    fields
+    #region Comment out for BC27
+    /* fields
     {
         modify("Invoice Period")
         {
@@ -342,153 +343,166 @@ tableextension 50003 "Service Contract Header Ext" extends "Service Contract Hea
             end;
         }
 
-    }
+    } */
+    #endregion Comment out for BC27
 
-    local procedure CalcInvPeriodDuration()
+    procedure getSuspendChangeStatus(): Boolean //for code unit 50001
     begin
-        if "Invoice Period" <> "Invoice Period"::None then
-            case "Invoice Period" of
-                "Invoice Period"::Month:
-                    Evaluate(InvPeriodDuration, '<1M>');
-                "Invoice Period"::"Two Months":
-                    Evaluate(InvPeriodDuration, '<2M>');
-                "Invoice Period"::Quarter:
-                    Evaluate(InvPeriodDuration, '<3M>');
-                "Invoice Period"::"Half Year":
-                    Evaluate(InvPeriodDuration, '<6M>');
-                "Invoice Period"::Year:
-                    Evaluate(InvPeriodDuration, '<1Y>');
-                // PBC MOD. BEGIN additional contract periods for 18months, 2years and 3years
-                "Invoice Period"::"Eighteen Months":
-                    Evaluate(InvPeriodDuration, '<18M>');
-                "Invoice Period"::"Two Years":
-                    Evaluate(InvPeriodDuration, '<24M>');
-                "Invoice Period"::"Three Years":
-                    Evaluate(InvPeriodDuration, '<36M>');
-                // PBC MOD. END additional contract periods for 18months, 2years and 3years
-                else
-                    ;
+        exit(SuspendChangeStatus);
+    end;
+
+    procedure getHideValidationDialog(): Boolean//for code unit 50001
+    begin
+        exit(HideValidationDialog);
+    end;
+
+    /* Comment out for BC27
+            local procedure CalcInvPeriodDuration()
+            begin
+                if "Invoice Period" <> "Invoice Period"::None then
+                    case "Invoice Period" of
+                        "Invoice Period"::Month:
+                            Evaluate(InvPeriodDuration, '<1M>');
+                        "Invoice Period"::"Two Months":
+                            Evaluate(InvPeriodDuration, '<2M>');
+                        "Invoice Period"::Quarter:
+                            Evaluate(InvPeriodDuration, '<3M>');
+                        "Invoice Period"::"Half Year":
+                            Evaluate(InvPeriodDuration, '<6M>');
+                        "Invoice Period"::Year:
+                            Evaluate(InvPeriodDuration, '<1Y>');
+                        // PBC MOD. BEGIN additional contract periods for 18months, 2years and 3years
+                        "Invoice Period"::"Eighteen Months":
+                            Evaluate(InvPeriodDuration, '<18M>');
+                        "Invoice Period"::"Two Years":
+                            Evaluate(InvPeriodDuration, '<24M>');
+                        "Invoice Period"::"Three Years":
+                            Evaluate(InvPeriodDuration, '<36M>');
+                        // PBC MOD. END additional contract periods for 18months, 2years and 3years
+                        else
+                            ;
+                    end;
             end;
-    end;
 
-    local procedure CheckChangeStatus()
-    begin
-        if (Status <> Status::Cancelled) and
-           not SuspendChangeStatus
-        then
-            TestField("Change Status", "Change Status"::Open);
-    end;
+            local procedure CheckChangeStatus()
+            begin
+                if (Status <> Status::Cancelled) and
+                   not SuspendChangeStatus
+                then
+                    TestField("Change Status", "Change Status"::Open);
+            end;
 
-    local procedure CheckExpirationDate()
-    begin
-        if "Expiration Date" <> 0D then begin
-            if "Expiration Date" < "Starting Date" then
-                Error(Text023, FieldCaption("Expiration Date"), FieldCaption("Starting Date"));
-            if "Last Invoice Date" <> 0D then
-                if "Expiration Date" < "Last Invoice Date" then
-                    Error(
-                        Text023, FieldCaption("Expiration Date"), FieldCaption("Last Invoice Date"));
-        end;
-    end;
+            local procedure CheckExpirationDate()
+            begin
+                if "Expiration Date" <> 0D then begin
+                    if "Expiration Date" < "Starting Date" then
+                        Error(Text023, FieldCaption("Expiration Date"), FieldCaption("Starting Date"));
+                    if "Last Invoice Date" <> 0D then
+                        if "Expiration Date" < "Last Invoice Date" then
+                            Error(
+                                Text023, FieldCaption("Expiration Date"), FieldCaption("Last Invoice Date"));
+                end;
+            end;
 
-    procedure MyValidateNextInvoicePeriod()
-    var
-        InvFrom: Date;
-        InvTo: Date;
-        NoOfDays: Integer;
-        NoOfMonths: Integer;
-        DaysInThisInvPeriod: Integer;
-        DaysInFullInvPeriod: Integer;
-        Currency: Record Currency;
-        ServContractMgt: Codeunit "ServContractMgmt Copy"; //ServContractManagement;
-    begin
-        if NextInvoicePeriod() = '' then begin
-            "Amount per Period" := 0;
-            exit;
-        end;
-        Currency.InitRoundingPrecision();
-        InvFrom := "Next Invoice Period Start";
-        InvTo := "Next Invoice Period End";
+            procedure MyValidateNextInvoicePeriod()
+            var
+                InvFrom: Date;
+                InvTo: Date;
+                NoOfDays: Integer;
+                NoOfMonths: Integer;
+                DaysInThisInvPeriod: Integer;
+                DaysInFullInvPeriod: Integer;
+                Currency: Record Currency;
+                ServContractMgt: Codeunit "ServContractMgmt Copy"; //ServContractManagement;
+            begin
+                if NextInvoicePeriod() = '' then begin
+                    "Amount per Period" := 0;
+                    exit;
+                end;
+                Currency.InitRoundingPrecision();
+                InvFrom := "Next Invoice Period Start";
+                InvTo := "Next Invoice Period End";
 
-        DaysInThisInvPeriod := InvTo - InvFrom + 1;
+                DaysInThisInvPeriod := InvTo - InvFrom + 1;
 
-        ServMgtSetup.GET; // PBC MOD.
+                ServMgtSetup.GET; // PBC MOD.
 
-        if Prepaid then begin
-            TempDate := CalculateEndPeriodDate(true, "Next Invoice Date");
-            DaysInFullInvPeriod := TempDate - "Next Invoice Date" + 1;
-        end else begin
-            TempDate := CalculateEndPeriodDate(false, "Next Invoice Date");
-            DaysInFullInvPeriod := "Next Invoice Date" - TempDate + 1;
-            if (DaysInFullInvPeriod = DaysInThisInvPeriod) and ("Next Invoice Date" = "Expiration Date") then
-                DaysInFullInvPeriod := CalculateEndPeriodDate(true, TempDate) - TempDate + 1;
-        end;
+                if Prepaid then begin
+                    TempDate := CalculateEndPeriodDate(true, "Next Invoice Date");
+                    DaysInFullInvPeriod := TempDate - "Next Invoice Date" + 1;
+                end else begin
+                    TempDate := CalculateEndPeriodDate(false, "Next Invoice Date");
+                    DaysInFullInvPeriod := "Next Invoice Date" - TempDate + 1;
+                    if (DaysInFullInvPeriod = DaysInThisInvPeriod) and ("Next Invoice Date" = "Expiration Date") then
+                        DaysInFullInvPeriod := CalculateEndPeriodDate(true, TempDate) - TempDate + 1;
+                end;
 
-        //SetAmountPerPeriod(InvFrom, InvTo);
-        if DaysInFullInvPeriod = DaysInThisInvPeriod then
-            IF ServMgtSetup."Prepaid Inv. for Whole Year" = FALSE THEN // PBC MOD
-                "Amount per Period" :=
-                  Round("Annual Amount" / ReturnNoOfPer("Invoice Period"), Currency."Amount Rounding Precision")
-            ELSE BEGIN  // PBC MOD
-                //ServContractMgt.NoOfMonthsAndDaysInPeriod2(InvFrom, InvTo, NoOfMonths, NoOfDays); // PBC MOD.
-                NoOfMonthsAndDaysInPeriod2(InvFrom, InvTo, NoOfMonths, NoOfDays); // PBC MOD.
-                "Amount per Period" :=
-                  ROUND("Annual Amount" / 12 * NoOfMonths, Currency."Amount Rounding Precision"); // PBC MOD.
-            END // PBC MOD.
-        else
-            "Amount per Period" := Round(
-                ServContractMgt.CalcContractAmount(Rec, InvFrom, InvTo), Currency."Amount Rounding Precision");
-    end;
+                //SetAmountPerPeriod(InvFrom, InvTo);
+                if DaysInFullInvPeriod = DaysInThisInvPeriod then
+                    IF ServMgtSetup."Prepaid Inv. for Whole Year" = FALSE THEN // PBC MOD
+                        "Amount per Period" :=
+                          Round("Annual Amount" / ReturnNoOfPer("Invoice Period"), Currency."Amount Rounding Precision")
+                    ELSE BEGIN  // PBC MOD
+                        //ServContractMgt.NoOfMonthsAndDaysInPeriod2(InvFrom, InvTo, NoOfMonths, NoOfDays); // PBC MOD.
+                        NoOfMonthsAndDaysInPeriod2(InvFrom, InvTo, NoOfMonths, NoOfDays); // PBC MOD.
+                        "Amount per Period" :=
+                          ROUND("Annual Amount" / 12 * NoOfMonths, Currency."Amount Rounding Precision"); // PBC MOD.
+                    END // PBC MOD.
+                else
+                    "Amount per Period" := Round(
+                        ServContractMgt.CalcContractAmount(Rec, InvFrom, InvTo), Currency."Amount Rounding Precision");
+            end;
 
-    PROCEDURE NoOfMonthsAndDaysInPeriod2(Day1: Date; Day2: Date; VAR NoOfMonthsInPeriod: Integer; VAR NoOfDaysInPeriod: Integer);
-    VAR
-        Wdate: Date;
-        FirstDayinCrntMonth: Date;
-        LastDayinCrntMonth: Date;
-    BEGIN
-        //PBC Created routine for proper calculation of Contract Amount
+            PROCEDURE NoOfMonthsAndDaysInPeriod2(Day1: Date; Day2: Date; VAR NoOfMonthsInPeriod: Integer; VAR NoOfDaysInPeriod: Integer);
+            VAR
+                Wdate: Date;
+                FirstDayinCrntMonth: Date;
+                LastDayinCrntMonth: Date;
+            BEGIN
+                //PBC Created routine for proper calculation of Contract Amount
 
-        NoOfMonthsInPeriod := 0;
-        NoOfDaysInPeriod := 0;
+                NoOfMonthsInPeriod := 0;
+                NoOfDaysInPeriod := 0;
 
-        IF Day1 > Day2 THEN
-            EXIT;
-        IF Day1 = 0D THEN
-            EXIT;
-        IF Day2 = 0D THEN
-            EXIT;
+                IF Day1 > Day2 THEN
+                    EXIT;
+                IF Day1 = 0D THEN
+                    EXIT;
+                IF Day2 = 0D THEN
+                    EXIT;
 
-        NoOfDaysInPeriod := Day2 - Day1 + 1;
+                NoOfDaysInPeriod := Day2 - Day1 + 1;
 
-        Wdate := Day1;
-        IF Day1 <> CALCDATE('<-CM>', Wdate) THEN
-            NoOfMonthsInPeriod := 1;
+                Wdate := Day1;
+                IF Day1 <> CALCDATE('<-CM>', Wdate) THEN
+                    NoOfMonthsInPeriod := 1;
 
-        REPEAT
-            FirstDayinCrntMonth := CALCDATE('<-CM>', Wdate);
-            LastDayinCrntMonth := CALCDATE('<CM>', Wdate);
-            IF (Wdate = FirstDayinCrntMonth) AND (LastDayinCrntMonth <= Day2) THEN BEGIN
-                NoOfMonthsInPeriod := NoOfMonthsInPeriod + 1;
-                Wdate := LastDayinCrntMonth + 1;
-            END ELSE
-                Wdate := Wdate + 1;
-        UNTIL Wdate > Day2;
-    END;
+                REPEAT
+                    FirstDayinCrntMonth := CALCDATE('<-CM>', Wdate);
+                    LastDayinCrntMonth := CALCDATE('<CM>', Wdate);
+                    IF (Wdate = FirstDayinCrntMonth) AND (LastDayinCrntMonth <= Day2) THEN BEGIN
+                        NoOfMonthsInPeriod := NoOfMonthsInPeriod + 1;
+                        Wdate := LastDayinCrntMonth + 1;
+                    END ELSE
+                        Wdate := Wdate + 1;
+                UNTIL Wdate > Day2;
+            END;
 
-    var
-        Text023: Label '%1 cannot be less than %2.';
-        Text024: Label 'The %1 cannot be before the %2.';
-        Text026: Label '%1 must be the first day in the month.';
-        Text028: Label '%1 must be the last day in the month.';
-        Text029: Label 'You are not allowed to change %1 because the %2 has been invoiced.';
-        Text032: Label 'You cannot change %1 because %2 %3 has been invoiced.';
-        Text041: Label '%1 cannot be changed to %2 because this %3 has been invoiced';
-        Text056: Label 'The contract expiration dates on the service contract lines that are later than %1 on the %2 will be replaced with %3.\Do you want to continue?';
-        Text057: Label 'You cannot select both the %1 and the %2 check boxes.';
-        Text065: Label '%1 cannot be more than %2.';
-        Text999: Label 'Please change Contract Expiration Date and Credit Memo Date  in each line manually!';
-        InvPeriodDuration: DateFormula;
-        TempDate: Date;
-        ServMgtSetup: Record "Service Mgt. Setup";
-        ServContractLine: Record "Service Contract Line";
+            var
+                Text023: Label '%1 cannot be less than %2.';
+                Text024: Label 'The %1 cannot be before the %2.';
+                Text026: Label '%1 must be the first day in the month.';
+                Text028: Label '%1 must be the last day in the month.';
+                Text029: Label 'You are not allowed to change %1 because the %2 has been invoiced.';
+                Text032: Label 'You cannot change %1 because %2 %3 has been invoiced.';
+                Text041: Label '%1 cannot be changed to %2 because this %3 has been invoiced';
+                Text056: Label 'The contract expiration dates on the service contract lines that are later than %1 on the %2 will be replaced with %3.\Do you want to continue?';
+                Text057: Label 'You cannot select both the %1 and the %2 check boxes.';
+                Text065: Label '%1 cannot be more than %2.';
+                Text999: Label 'Please change Contract Expiration Date and Credit Memo Date  in each line manually!';
+                InvPeriodDuration: DateFormula;
+                TempDate: Date;
+                ServMgtSetup: Record "Service Mgt. Setup";
+                ServContractLine: Record "Service Contract Line";
+         */
 }
