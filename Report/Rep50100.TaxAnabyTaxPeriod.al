@@ -95,6 +95,7 @@ report 50100 "Tax Ana. by Tax Period"
                 CustAmount: Decimal;
                 AmountInclVAT: Decimal;
                 VATPostingSetup: Record "VAT Posting Setup";
+                CurCombo: Text;
             BEGIN
                 VATPostingSetup.Reset();
                 if VATPostingSetup.Get("VAT Bus. Posting Group", "VAT Prod. Posting Group") then;
@@ -117,11 +118,6 @@ report 50100 "Tax Ana. by Tax Period"
                     IF "VAT Entry"."Document Type" = "VAT Entry"."Document Type"::Invoice THEN BEGIN
                         IF "VAT Entry"."Source Code" = 'SALES' THEN BEGIN
                             IF SalesInvoiceHeader.GET("VAT Entry"."Document No.") THEN BEGIN
-
-                                if SInvNo.Contains(SalesInvoiceHeader."No.") then//05/16/2026 Merge lines for the same document numbers
-                                    CurrReport.Skip()
-                                else
-                                    SInvNo.Add(SalesInvoiceHeader."No.");//05/16/2026 Merge lines for the same document numbers
 
                                 CurrencyCode := SalesInvoiceHeader."Currency Code";
                                 SalesInvoiceLine.RESET;
@@ -177,6 +173,18 @@ report 50100 "Tax Ana. by Tax Period"
                                 END ELSE BEGIN
                                     NetAmountInFCY := -CustAmount;                                                                         //2007.08.23 NKC1.02
                                     TaxAmountInFCY := -(AmountInclVAT - CustAmount);                                                       //2007.08.23 NKC1.02
+                                END;
+
+                                IF "VAT Entry".Base < 0 THEN BEGIN
+                                    CurCombo := SalesInvoiceHeader."No." + "VAT Entry"."Gen. Bus. Posting Group" +
+                                                "VAT Entry"."Gen. Prod. Posting Group" + "VAT Entry"."VAT Bus. Posting Group" +
+                                                "VAT Entry"."VAT Prod. Posting Group";
+                                    if SInvNo.Contains(CurCombo) then begin//05/16/2026 Merge lines for the same document numbers SalesInvoiceHeader."No."
+                                        NetAmountInFCY := 0;
+                                        TaxAmountInFCY := 0;
+                                    end
+                                    else
+                                        SInvNo.Add(CurCombo);//05/16/2026 Merge lines for the same document numbers
                                 END;
                             END;
                         END
@@ -365,10 +373,13 @@ report 50100 "Tax Ana. by Tax Period"
                         IF "VAT Entry"."Document Type" = "VAT Entry"."Document Type"::Invoice THEN BEGIN
                             IF PurchInvHeader.GET("VAT Entry"."Document No.") THEN BEGIN
 
-                                if PInvNo.Contains(PurchInvHeader."No.") then//05/16/2026 Merge lines for the same document numbers
+                                /* CurCombo := PurchInvHeader."No." + "VAT Entry"."Gen. Bus. Posting Group" +
+                                            "VAT Entry"."Gen. Prod. Posting Group" + "VAT Entry"."VAT Bus. Posting Group" +
+                                            "VAT Entry"."VAT Prod. Posting Group";
+                                if PInvNo.Contains(CurCombo) then//05/16/2026 Merge lines for the same document numbers PurchInvHeader."No."
                                     CurrReport.Skip()
                                 else
-                                    PInvNo.Add(PurchInvHeader."No.");//05/16/2026 Merge lines for the same document numbers
+                                    PInvNo.Add(CurCombo);//05/16/2026 Merge lines for the same document numbers */
 
                                 CurrencyCode := PurchInvHeader."Currency Code";
                                 PurchInvLine.RESET;
