@@ -56,6 +56,8 @@ report 50100 "Tax Ana. by Tax Period"
 
             trigger OnPreDataItem()
             begin
+                Clear(SInvNo);//05/16/2026 Merge lines for the same document numbers
+                Clear(PInvNo);//05/16/2026 Merge lines for the same document numbers
 
                 IF "VAT Entry".GETFILTER("VAT Entry".Type) = '' THEN
                     ERROR(Text015);
@@ -115,6 +117,12 @@ report 50100 "Tax Ana. by Tax Period"
                     IF "VAT Entry"."Document Type" = "VAT Entry"."Document Type"::Invoice THEN BEGIN
                         IF "VAT Entry"."Source Code" = 'SALES' THEN BEGIN
                             IF SalesInvoiceHeader.GET("VAT Entry"."Document No.") THEN BEGIN
+
+                                if SInvNo.Contains(SalesInvoiceHeader."No.") then//05/16/2026 Merge lines for the same document numbers
+                                    CurrReport.Skip()
+                                else
+                                    SInvNo.Add(SalesInvoiceHeader."No.");//05/16/2026 Merge lines for the same document numbers
+
                                 CurrencyCode := SalesInvoiceHeader."Currency Code";
                                 SalesInvoiceLine.RESET;
                                 SalesInvoiceLine.SETRANGE(SalesInvoiceLine."Document No.", SalesInvoiceHeader."No.");
@@ -356,6 +364,12 @@ report 50100 "Tax Ana. by Tax Period"
                     IF "VAT Entry".Type = "VAT Entry".Type::Purchase THEN BEGIN
                         IF "VAT Entry"."Document Type" = "VAT Entry"."Document Type"::Invoice THEN BEGIN
                             IF PurchInvHeader.GET("VAT Entry"."Document No.") THEN BEGIN
+
+                                if PInvNo.Contains(PurchInvHeader."No.") then//05/16/2026 Merge lines for the same document numbers
+                                    CurrReport.Skip()
+                                else
+                                    PInvNo.Add(PurchInvHeader."No.");//05/16/2026 Merge lines for the same document numbers
+
                                 CurrencyCode := PurchInvHeader."Currency Code";
                                 PurchInvLine.RESET;
                                 PurchInvLine.SETRANGE(PurchInvLine."Document No.", PurchInvHeader."No.");
@@ -556,4 +570,6 @@ report 50100 "Tax Ana. by Tax Period"
         InventoryPostingGroup: Record "Inventory Posting Group";
         IsEquivalent: Boolean;
         TotalCaption: Text[50];
+        SInvNo: List of [Text];
+        PInvNo: List of [Text];
 }
