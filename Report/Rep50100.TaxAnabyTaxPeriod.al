@@ -373,14 +373,6 @@ report 50100 "Tax Ana. by Tax Period"
                         IF "VAT Entry"."Document Type" = "VAT Entry"."Document Type"::Invoice THEN BEGIN
                             IF PurchInvHeader.GET("VAT Entry"."Document No.") THEN BEGIN
 
-                                /* CurCombo := PurchInvHeader."No." + "VAT Entry"."Gen. Bus. Posting Group" +
-                                            "VAT Entry"."Gen. Prod. Posting Group" + "VAT Entry"."VAT Bus. Posting Group" +
-                                            "VAT Entry"."VAT Prod. Posting Group";
-                                if PInvNo.Contains(CurCombo) then//05/16/2026 Merge lines for the same document numbers PurchInvHeader."No."
-                                    CurrReport.Skip()
-                                else
-                                    PInvNo.Add(CurCombo);//05/16/2026 Merge lines for the same document numbers */
-
                                 CurrencyCode := PurchInvHeader."Currency Code";
                                 PurchInvLine.RESET;
                                 PurchInvLine.SETRANGE(PurchInvLine."Document No.", PurchInvHeader."No.");
@@ -432,6 +424,17 @@ report 50100 "Tax Ana. by Tax Period"
 
                                 NetAmountInFCY := CustAmount;
                                 TaxAmountInFCY := AmountInclVAT - CustAmount;
+
+
+                                CurCombo := PurchInvHeader."No." + "VAT Entry"."Gen. Bus. Posting Group" +
+                                           "VAT Entry"."Gen. Prod. Posting Group" + "VAT Entry"."VAT Bus. Posting Group" +
+                                           "VAT Entry"."VAT Prod. Posting Group";
+                                if PInvNo.Contains(CurCombo) then begin //05/16/2026 Merge lines for the same document numbers PurchInvHeader."No."
+                                    NetAmountInFCY := 0;
+                                    TaxAmountInFCY := 0;
+                                end
+                                else
+                                    PInvNo.Add(CurCombo);//05/16/2026 Merge lines for the same document numbers 
 
                             END;
                         END ELSE
