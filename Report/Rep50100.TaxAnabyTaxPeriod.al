@@ -308,6 +308,17 @@ report 50100 "Tax Ana. by Tax Period"
                                     NetAmountInFCY := CustAmount;
                                     TaxAmountInFCY := AmountInclVAT - CustAmount;
 
+                                    CurCombo := SalesCrMemoHeader."No." + "VAT Entry"."Gen. Bus. Posting Group" +
+                                                "VAT Entry"."Gen. Prod. Posting Group" + "VAT Entry"."VAT Bus. Posting Group" +
+                                                "VAT Entry"."VAT Prod. Posting Group";
+                                    if SInvNo.Contains(CurCombo) then begin//05/16/2026 Merge lines for the same document numbers SalesInvoiceHeader."No."
+                                        NetAmountInFCY := 0;
+                                        TaxAmountInFCY := 0;
+                                    end
+                                    else
+                                        SInvNo.Add(CurCombo);//05/16/2026 Merge lines for the same document numbers
+
+
                                 END;
                             END
                             ELSE
@@ -364,6 +375,18 @@ report 50100 "Tax Ana. by Tax Period"
 
                                         NetAmountInFCY := CustAmount;
                                         TaxAmountInFCY := AmountInclVAT - CustAmount;
+
+
+                                        CurCombo := ServiceCrMemoHeader."No." + "VAT Entry"."Gen. Bus. Posting Group" +
+                                                "VAT Entry"."Gen. Prod. Posting Group" + "VAT Entry"."VAT Bus. Posting Group" +
+                                                "VAT Entry"."VAT Prod. Posting Group";
+
+                                        if SInvNo.Contains(CurCombo) then begin//05/16/2026 Merge lines for the same document numbers SalesInvoiceHeader."No."
+                                            NetAmountInFCY := 0;
+                                            TaxAmountInFCY := 0;
+                                        end
+                                        else
+                                            SInvNo.Add(CurCombo);//05/16/2026 Merge lines for the same document numbers
 
                                     END;
                                 END;
@@ -492,6 +515,16 @@ report 50100 "Tax Ana. by Tax Period"
                                     NetAmountInFCY := -CustAmount;                                                                           //2007.08.23 NKC1.02
                                     TaxAmountInFCY := -(AmountInclVAT - CustAmount);                                                         //2007.08.23 NKC1.02
 
+                                    CurCombo := PurchCrMemoHdr."No." + "VAT Entry"."Gen. Bus. Posting Group" +
+                                                "VAT Entry"."Gen. Prod. Posting Group" + "VAT Entry"."VAT Bus. Posting Group" +
+                                                                                    "VAT Entry"."VAT Prod. Posting Group";
+
+                                    if SInvNo.Contains(CurCombo) then begin//05/16/2026 Merge lines for the same document numbers SalesInvoiceHeader."No."
+                                        NetAmountInFCY := 0;
+                                        TaxAmountInFCY := 0;
+                                    end
+                                    else
+                                        SInvNo.Add(CurCombo);//05/16/2026 Merge lines for the same document numbers
                                 END;
                             END;
                     END;
