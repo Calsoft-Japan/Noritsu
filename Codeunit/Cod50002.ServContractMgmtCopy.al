@@ -700,7 +700,8 @@ codeunit 50002 "ServContractMgmt Copy"
         ServContractHeader: Record "Service Contract Header";
         StdText: Record "Standard Text";
         Cust: Record Customer;
-        TransferExtendedText: Codeunit "Transfer Extended Text";
+        //TransferExtendedText: Codeunit "Transfer Extended Text";
+        ServiceTransferExtText: Codeunit "Service Transfer Ext. Text";
         IsHandled: Boolean;
     begin
         IsHandled := false;
@@ -727,9 +728,12 @@ codeunit 50002 "ServContractMgmt Copy"
                         ServLineNo := ServLineNo + 10000;
                         ServLine."Line No." := ServLineNo;
                         ServLine.Insert();
-                        if TransferExtendedText.ServCheckIfAnyExtText(ServLine, true) then
-                            TransferExtendedText.InsertServExtText(ServLine);
-                        if TransferExtendedText.MakeUpdate() then;
+                        //if TransferExtendedText.ServCheckIfAnyExtText(ServLine, true) then
+                        //    TransferExtendedText.InsertServExtText(ServLine);
+                        //if TransferExtendedText.MakeUpdate() then;
+                        if ServiceTransferExtText.ServCheckIfAnyExtText(ServLine, true) then
+                            ServiceTransferExtText.InsertServExtText(ServLine);
+
                         ServLine."No." := '';
                         OnBeforeLastServLineModify(ServLine);
                         ServLine.Modify();
@@ -1753,7 +1757,8 @@ codeunit 50002 "ServContractMgmt Copy"
         ServContractLine: Record "Service Contract Line";
         Cust: Record Customer;
         ContractChangeLog: Record "Contract Change Log";
-        CustCheckCrLimit: Codeunit "Cust-Check Cr. Limit";
+        //CustCheckCrLimit: Codeunit "Cust-Check Cr. Limit";
+        ServCheckCreditLimit: Codeunit "Serv. Check Credit Limit";
         UserMgt: Codeunit "User Setup Management";
         OldSalespersonCode: Code[20];
         OldCurrencyCode: Code[10];
@@ -1772,7 +1777,8 @@ codeunit 50002 "ServContractMgmt Copy"
                 ContractChangeLog.LogContractChange(
                   ServContractHeader."Contract No.", 0, ServContractHeader.FieldCaption("Customer No."), 0, ServContractHeader."Customer No.", NewCustomertNo, '', 0);
             ServContractHeader."Customer No." := NewCustomertNo;
-            CustCheckCrLimit.OnNewCheckRemoveCustomerNotifications(ServContractHeader.RecordId, true);
+            //CustCheckCrLimit.OnNewCheckRemoveCustomerNotifications(ServContractHeader.RecordId, true);
+            ServCheckCreditLimit.OnNewCheckRemoveCustomerNotifications(ServContractHeader.RecordId, true);
 
             Cust.Get(NewCustomertNo);
             ServContractHeader.SetHideValidationDialog(true);
@@ -1785,7 +1791,8 @@ codeunit 50002 "ServContractMgmt Copy"
             ServContractHeader.CalcFields(
               Name, "Name 2", Address, "Address 2",
               "Post Code", City, County, "Country/Region Code");
-            CustCheckCrLimit.ServiceContractHeaderCheck(ServContractHeader);
+            //CustCheckCrLimit.ServiceContractHeaderCheck(ServContractHeader);
+            ServCheckCreditLimit.ServiceContractHeaderCheck(ServContractHeader);
         end;
 
         ProcessShiptoCodeChange(ServContractHeader, NewShipToCode, ContractChangeLog);

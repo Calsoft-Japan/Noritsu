@@ -149,7 +149,7 @@ reportextension 50001 "Service Invoice Ext." extends "Service - Invoice"
                 FormatAddrX.ServiceInvBillTo(BillToAddr, "Service Invoice Header");
                 FormatAddrX.ServiceInvShipTo(ShipToAddrX, BillToAddr, "Service Invoice Header");
 
-                FormatAddrX.FormatAddr(SellToAddrX, "Service Invoice Header".Name, "Service Invoice Header"."Name 2", "Service Invoice Header"."Contact Name",
+                FormatAddrS.FormatAddr(SellToAddrX, "Service Invoice Header".Name, "Service Invoice Header"."Name 2", "Service Invoice Header"."Contact Name",
                     "Service Invoice Header".Address, "Service Invoice Header"."Address 2", "Service Invoice Header".City, "Service Invoice Header"."Post Code",
                     "Service Invoice Header".County, "Service Invoice Header"."Country/Region Code");
 
@@ -438,7 +438,8 @@ reportextension 50001 "Service Invoice Ext." extends "Service - Invoice"
         TotalInvDiscAmountX: Decimal;
         CompanyInfoX: Record "Company Information";
         CustX: Record Customer;
-        FormatAddrX: Codeunit "Format Address";
+        FormatAddrX: Codeunit "Service Format Address";//"Format Address";
+        FormatAddrS: Codeunit "Format Address";
         SellToAddrX: array[8] of Text[100];
         ShipToAddrX: array[8] of Text[100];
         BillToAddr: array[8] of Text[100];

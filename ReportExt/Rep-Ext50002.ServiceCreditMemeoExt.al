@@ -100,7 +100,7 @@ reportextension 50002 "Service Credit Memeo Ext" extends "Service - Credit Memo"
                 FormatAddrX.ServiceCrMemoBillTo(BillToAddr, "Service Cr.Memo Header");
                 FormatAddrX.ServiceCrMemoShipTo(ShipToAddrX, BillToAddr, "Service Cr.Memo Header");
 
-                FormatAddrX.FormatAddr(SellToAddrX, "Service Cr.Memo Header".Name, "Service Cr.Memo Header"."Name 2", "Service Cr.Memo Header"."Contact Name",
+                FormatAddrS.FormatAddr(SellToAddrX, "Service Cr.Memo Header".Name, "Service Cr.Memo Header"."Name 2", "Service Cr.Memo Header"."Contact Name",
                     "Service Cr.Memo Header".Address, "Service Cr.Memo Header"."Address 2", "Service Cr.Memo Header".City, "Service Cr.Memo Header"."Post Code",
                     "Service Cr.Memo Header".County, "Service Cr.Memo Header"."Country/Region Code");
 
@@ -343,7 +343,8 @@ reportextension 50002 "Service Credit Memeo Ext" extends "Service - Credit Memo"
         TotalInvDiscAmountX: Decimal;
         CompanyInfoX: Record "Company Information";
         CustX: Record Customer;
-        FormatAddrX: Codeunit "Format Address";
+        FormatAddrX: Codeunit "Service Format Address";//"Format Address";
+        FormatAddrS: Codeunit "Format Address";
         SellToAddrX: array[8] of Text[100];
         ShipToAddrX: array[8] of Text[100];
         BillToAddr: array[8] of Text[100];
